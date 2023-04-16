@@ -11,19 +11,22 @@ OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 app = Flask(__name__)
 cors = CORS(app, origins=CLIENT_URL)
 
+"""
 @app.route('/test_endpoint', methods=['GET'])
 def test_endpoint():
     response_data = {"result": "you got it!"}
     response = make_response(jsonify(response_data))
     response.headers["Content-Type"] = "application/json"
     return response
+"""
 
 @app.route('/send_message', methods=['POST'])
 def send_message():
     chat_history = request.json["chatHistory"]
+    # chat_history[-1]["content"] += ". Remember to correct my errors"
     print("💪", chat_history)
     ai_message = get_chat_completion(OPENAI_API_KEY, chat_history)
-    response_data = {"result": ai_message}
+    # response_data = {"result": ai_message}
     response = make_response(jsonify(ai_message))
     response.headers["Content-Type"] = "application/json"
     return response

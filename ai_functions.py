@@ -1,7 +1,6 @@
 import openai
 
 def query_gpt():
-
     openai.api_key = "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"
     text = openai.ChatCompletion.create(
         engine = "gpt-3.5-turbo",
@@ -17,8 +16,6 @@ def query_gpt():
     return text
 
 def get_chat_completion(api_key, chat_history):
-
-
     with open("prompt.txt", "r") as file:
         prompt_content = file.read()
         system_message_object = {"role": "system", "content": prompt_content}
