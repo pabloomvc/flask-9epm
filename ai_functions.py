@@ -16,7 +16,7 @@ def query_gpt():
 
     return text
 
-def get_chat_completion(chat_history):
+def get_chat_completion(api_key, chat_history):
 
 
     with open("prompt.txt", "r") as file:
@@ -25,7 +25,7 @@ def get_chat_completion(chat_history):
 
     full_chat_history = [system_message_object] + chat_history
 
-    openai.api_key = "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"
+    openai.api_key = api_key
     completion = openai.ChatCompletion.create(
     model="gpt-3.5-turbo",
     messages= full_chat_history

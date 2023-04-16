@@ -6,7 +6,7 @@ from ai_functions import get_chat_completion
 
 load_dotenv()
 CLIENT_URL = os.getenv('CLIENT_URL') # "http://localhost:3000"
-
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 # Flask stuff
 app = Flask(__name__)
 cors = CORS(app, origins=CLIENT_URL)
@@ -22,7 +22,7 @@ def test_endpoint():
 def send_message():
     chat_history = request.json["chatHistory"]
     print("💪", chat_history)
-    ai_message = get_chat_completion(chat_history)
+    ai_message = get_chat_completion(OPENAI_API_KEY, chat_history)
     response_data = {"result": ai_message}
     response = make_response(jsonify(ai_message))
     response.headers["Content-Type"] = "application/json"
