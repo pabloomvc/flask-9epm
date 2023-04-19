@@ -2,7 +2,7 @@ from flask import Flask, request, make_response, jsonify
 from flask_cors import CORS
 import os
 from dotenv import load_dotenv
-from ai_functions import get_chat_completion
+from functions import get_chat_completion, translate_message
 
 load_dotenv()
 CLIENT_URL = os.getenv('CLIENT_URL') # "http://localhost:3000"
@@ -23,11 +23,25 @@ def test_endpoint():
 @app.route('/send_message', methods=['POST'])
 def send_message():
     chat_history = request.json["chatHistory"]
+    source_language = request.json["sourceLanguage"]
+    target_language = request.json["targetLanguage"]
+
     # chat_history[-1]["content"] += ". Remember to correct my errors"
     print("💪", chat_history)
-    ai_message = get_chat_completion(OPENAI_API_KEY, chat_history)
+    ai_message = get_chat_completion(OPENAI_API_KEY, chat_history, source_language, target_language)
     # response_data = {"result": ai_message}
     response = make_response(jsonify(ai_message))
+    response.headers["Content-Type"] = "application/json"
+    return response
+
+@app.route('/translate', methods=['POST'])
+def translate():
+    message = request.json["messageContent"]
+    source_language = request.json["sourceLanguage"]
+    target_language = request.json["targetLanguage"]
+    print(f"SOURCE {source_language} | TARGET {target_language}")
+    translation = translate_message(message, from_=target_language, to=source_language)
+    response = make_response(jsonify({"translation": translation}))
     response.headers["Content-Type"] = "application/json"
     return response
 
