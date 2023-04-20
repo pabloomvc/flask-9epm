@@ -26,10 +26,8 @@ def send_message():
     source_language = request.json["sourceLanguage"]
     target_language = request.json["targetLanguage"]
 
-    # chat_history[-1]["content"] += ". Remember to correct my errors"
     print("💪", chat_history)
     ai_message = get_chat_completion(OPENAI_API_KEY, chat_history, source_language, target_language)
-    # response_data = {"result": ai_message}
     response = make_response(jsonify(ai_message))
     response.headers["Content-Type"] = "application/json"
     return response
