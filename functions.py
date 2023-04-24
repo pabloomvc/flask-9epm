@@ -40,11 +40,11 @@ def get_chat_completion(api_key, chat_history, current_topic, source_language, t
                 situation_message = situation_message.replace("<source_language>", source_language)
                 situation_message = situation_message.replace("<target_language>", target_language)
         context_message = {"role":"user", "content": situation_message}
+        full_chat_history = [system_message_object] + [context_message] + chat_history[:-1] + [temp_message]
     else:
-        context_message = []
+        full_chat_history = [system_message_object] +  chat_history[:-1] + [temp_message]
 
-    print("📖", context_message)
-    full_chat_history = [system_message_object] + [context_message] + chat_history[:-1] + [temp_message]
+    print("📖", full_chat_history)
     clean_chat_history = [{"role": message["role"], "content": message["content"]} for message in full_chat_history]
 
     openai.api_key = api_key
