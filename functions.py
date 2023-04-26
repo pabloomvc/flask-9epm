@@ -1,6 +1,7 @@
 import openai
 import json
 from easygoogletranslate import EasyGoogleTranslate
+import pprint
 
 def get_chat_completion(api_key, chat_history, current_topic, source_language, target_language):
 
@@ -17,7 +18,7 @@ def get_chat_completion(api_key, chat_history, current_topic, source_language, t
         instructions = instructions.replace("<target_language>", target_language)
         temp_message = {"role":"user", "content":instructions}
     
-
+    print("⚪", temp_message)
 
     # For the topic, I'll add an user message that says that says they're at a coffee shop, or whatever the situation is.
     
@@ -44,18 +45,19 @@ def get_chat_completion(api_key, chat_history, current_topic, source_language, t
     else:
         full_chat_history = [system_message_object] +  chat_history[:-1] + [temp_message]
 
-    print("📖", full_chat_history)
+    # print("📖", full_chat_history)
     clean_chat_history = [{"role": message["role"], "content": message["content"]} for message in full_chat_history]
 
     openai.api_key = api_key
     completion = openai.ChatCompletion.create(temperature=0.3, model="gpt-3.5-turbo", messages= clean_chat_history)
-
+    pp = pprint.PrettyPrinter(indent=4)
+    print("🟢")
+    pp.pprint(completion.choices[0].message["content"])
     resulting_message = {
         "role": completion.choices[0].message["role"], 
         "content": json.loads(completion.choices[0].message["content"])["response"], 
         "suggestions": json.loads(completion.choices[0].message["content"])["suggestions"], 
         "translation": json.loads(completion.choices[0].message["content"])["translation"]}
-    
     chat_history.append(resulting_message)
     
     print("💪 New chat history")

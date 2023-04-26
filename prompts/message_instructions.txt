@@ -1,3 +1,9 @@
-<user_message> (format your response as a JSON object containing the content of your response, the translation of your response to <source_language>, and an array with 3 suggestions for the user to reply to your response. Your response should help the user practice <target_language>. The suggestions should be common things a human would reply with, relevant to the context of the conversation, and able to be replied to by the assistant. Keep the suggestions short and simple. 
+<user_message> 
+Format your response as a JSON object containing:
+- The user's message corrected to standard <target_language>.
+- An array of the <target_language> errors in the user's message (if applicable), with rationales.
+- The content of your response. Your response should help the user practice <target_language>.
+- The contextual translation of your response to <source_language>.
+- An array with 3 suggestions for the user to reply to your response. The suggestions should be common things a human would reply, relevant to the context of the conversation, and able to be replied to by the assistant. Keep the suggestions short and simple. Each suggestion should have it's corresponing <source_language> translation in the context of the conversation.
 
-Your response should be structured like this: {"response": <your response>, "translation": <the translation>, "suggestions":<an array with the 3 suggested user responses>}. Do not include anything else besides the JSON object)
+Your response should be structured like this: {"corrected_message":<user's message corrected to standard <target_language>>, "errors":[<an array of the <target_language> errors made by the user, if applicable>], "response": <your response>, "translation": <the translation>, "suggestions": [{"suggestion":<suggestion_1>, "translation":<translation_1>}, {"suggestion":<suggestion_2>, "translation":<translation_2>}, {"suggestion":<suggestion_3>, "translation":<translation_3>}]}. Do not include anything else besides the JSON object)
