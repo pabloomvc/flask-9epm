@@ -26,8 +26,10 @@ def send_message():
     source_language = request.json["sourceLanguage"]
     target_language = request.json["targetLanguage"]
     current_topic = request.json["currentTopic"] # Create different prompts for each topic.
+    is_suggestion = request.json["isSuggestion"]
     print("⚠️⚠️", current_topic)
-    ai_message = get_chat_completion(OPENAI_API_KEY, chat_history, current_topic, source_language, target_language)
+    print(is_suggestion)
+    ai_message = get_chat_completion(OPENAI_API_KEY, chat_history, current_topic, source_language, target_language, is_suggestion)
     response = make_response(jsonify(ai_message))
     response.headers["Content-Type"] = "application/json"
     return response

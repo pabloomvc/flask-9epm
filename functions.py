@@ -3,14 +3,16 @@ import json
 from easygoogletranslate import EasyGoogleTranslate
 import pprint
 
-def get_chat_completion(api_key, chat_history, current_topic, source_language, target_language):
+def get_chat_completion(api_key, chat_history, current_topic, source_language, target_language, is_suggestion):
 
+    # Load system prompt
     with open("prompts/initial_prompt.txt", "r") as initial_prompt_file:
         prompt_content = initial_prompt_file.read()
         prompt_content = prompt_content.replace("<source_language>", source_language)
         prompt_content = prompt_content.replace("<target_language>", target_language)
         system_message_object = {"role": "system", "content": prompt_content}
 
+    # Add the instructions to the last message entered by the user.
     with open("prompts/message_instructions.txt", "r") as message_instructions_file:
         instructions = message_instructions_file.read()
         instructions = instructions.replace("<user_message>", chat_history[-1]["content"])
@@ -47,22 +49,51 @@ def get_chat_completion(api_key, chat_history, current_topic, source_language, t
 
     # print("📖", full_chat_history)
     clean_chat_history = [{"role": message["role"], "content": message["content"]} for message in full_chat_history]
-
+    
     openai.api_key = api_key
-    completion = openai.ChatCompletion.create(temperature=0.3, model="gpt-3.5-turbo", messages= clean_chat_history)
+    main_completion = openai.ChatCompletion.create(temperature=0.1, model="gpt-3.5-turbo", messages= clean_chat_history)
     pp = pprint.PrettyPrinter(indent=4)
-    print("🟢")
-    pp.pprint(completion.choices[0].message["content"])
+    print("🟢1️⃣")
+    pp.pprint(main_completion.choices[0].message["content"])
+
+
+    # GETTING MESSAGE CORRECTIONS!
+    # Right now im doing it with gpt, but I MIGHT have to find (cheaper) alternatives.
+    # Creating the message for the 2nd call to the gpt, to get the user's errors and corrections.
+    # I figured this would take some of the load off the other call, and help the gpt avoid confusion. Let's see.
+    
+    if not is_suggestion:
+        with open("prompts/get_corrections_prompt.txt", "r") as get_corrections_file:
+            corrections_message = get_corrections_file.read()
+            corrections_message = corrections_message.replace("<source_language>", source_language)
+            corrections_message = corrections_message.replace("<target_language>", target_language)
+            corrections_message = corrections_message.replace("<user_message>", chat_history[-1]["content"])
+            corrections_message_dict = [{"role": "assistant", "content": corrections_message}]
+
+        corrections_completion = openai.ChatCompletion.create(temperature=0.1, model="gpt-3.5-turbo", messages=corrections_message_dict)
+        corrections_response = json.loads(corrections_completion.choices[0].message["content"])
+    else: 
+        corrections_response = {"corrected_message": None, "translated_message": None, "errors": []}
+
+    print("🟢2️⃣")
+    pp.pprint(corrections_response)
+
+    main_completion_response = json.loads(main_completion.choices[0].message["content"])
+    
+
     resulting_message = {
-        "role": completion.choices[0].message["role"], 
-        "content": json.loads(completion.choices[0].message["content"])["response"], 
-        "suggestions": json.loads(completion.choices[0].message["content"])["suggestions"], 
-        "translation": json.loads(completion.choices[0].message["content"])["translation"]}
+        "role": main_completion.choices[0].message["role"], 
+        "content": main_completion_response["reply"], 
+        "suggestions": main_completion_response["suggestions"], 
+        "translation": main_completion_response["translation"], 
+        "corrected_message": corrections_response["corrected_message"], 
+        "translated_message": corrections_response["translated_message"], 
+        "errors": corrections_response["errors"]}
     chat_history.append(resulting_message)
     
-    print("💪 New chat history")
-    for msg in chat_history:
-        print(msg)
+    # print("💪 New chat history")
+    # for msg in chat_history:
+    #     print(msg)
 
     return chat_history
 
@@ -84,3 +115,25 @@ def translate_message(message, from_="es", to="en"):
     result = translator.translate(message)
     return result
 
+import os
+from dotenv import load_dotenv
+pp = pprint.PrettyPrinter(indent=4)
+load_dotenv()
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+
+openai.api_key = OPENAI_API_KEY
+
+messages = [
+    {"role": "system", "content": "you're a helpful assistant, designed to help the user with language-related tasks."},
+    {"role": "user", 
+     "content": """I will give you a sentence, and you will give me a phrase-by-phrase translation to Italian.
+    Tenía muchísima hambre anoche, así que decidí hacerme un sandwich de tocino. También le agregué algo de lechuga y tomate. Estuvo buenísimo.
+     Format your response as JSON with the following keys: 
+     - tranlated_words: an array with the words and their translations {"phrase": <phrase_1>, "translation": <translation_1 to Italian>}
+     """
+     }
+]
+     #'I was very hungry last night, so I decided to make me a bacon sandwich. I also added some lettuce and tomato. It was amazing.'
+
+main_completion = openai.ChatCompletion.create(temperature=0.1, model="gpt-3.5-turbo", messages=messages)
+pp.pprint(main_completion.choices[0].message["content"])
