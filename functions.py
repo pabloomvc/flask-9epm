@@ -2,6 +2,7 @@ import openai
 import json
 from easygoogletranslate import EasyGoogleTranslate
 import pprint
+import time
 
 def get_chat_completion(api_key, chat_history, current_topic, source_language, target_language, is_suggestion):
 
@@ -56,47 +57,44 @@ def get_chat_completion(api_key, chat_history, current_topic, source_language, t
     print("🟢1️⃣")
     pp.pprint(main_completion.choices[0].message["content"])
 
-
-    # GETTING MESSAGE CORRECTIONS!
-    # Right now im doing it with gpt, but I MIGHT have to find (cheaper) alternatives.
-    # Creating the message for the 2nd call to the gpt, to get the user's errors and corrections.
-    # I figured this would take some of the load off the other call, and help the gpt avoid confusion. Let's see.
-    
-    if not is_suggestion:
-        with open("prompts/get_corrections_prompt.txt", "r") as get_corrections_file:
-            corrections_message = get_corrections_file.read()
-            corrections_message = corrections_message.replace("<source_language>", source_language)
-            corrections_message = corrections_message.replace("<target_language>", target_language)
-            corrections_message = corrections_message.replace("<user_message>", chat_history[-1]["content"])
-            corrections_message_dict = [{"role": "assistant", "content": corrections_message}]
-
-        corrections_completion = openai.ChatCompletion.create(temperature=0.1, model="gpt-3.5-turbo", messages=corrections_message_dict)
-        corrections_response = json.loads(corrections_completion.choices[0].message["content"])
-    else: 
-        corrections_response = {"corrected_message": None, "translated_message": None, "errors": []}
-
-    print("🟢2️⃣")
-    pp.pprint(corrections_response)
-
     main_completion_response = json.loads(main_completion.choices[0].message["content"])
-    
 
     resulting_message = {
         "role": main_completion.choices[0].message["role"], 
         "content": main_completion_response["reply"], 
         "suggestions": main_completion_response["suggestions"], 
-        "translation": main_completion_response["translation"], 
-        "corrected_message": corrections_response["corrected_message"], 
-        "translated_message": corrections_response["translated_message"], 
-        "errors": corrections_response["errors"]}
+        "translation": main_completion_response["translation"]}
     chat_history.append(resulting_message)
     
-    # print("💪 New chat history")
-    # for msg in chat_history:
-    #     print(msg)
-
     return chat_history
 
+def get_message_corrections(api_key, user_message, source_language, target_language, is_suggestion=False):
+    
+    # GETTING MESSAGE CORRECTIONS!
+    # Right now im doing it with gpt, but I MIGHT have to find (cheaper) alternatives.
+    # Creating the message for the 2nd call to the gpt, to get the user's errors and corrections.
+    # I figured this would take some of the load off the other call, and help the gpt avoid confusion. Let's see.
+    
+    openai.api_key = api_key
+    if is_suggestion == "false":
+        with open("prompts/get_corrections_prompt.txt", "r") as get_corrections_file:
+            corrections_message = get_corrections_file.read()
+            corrections_message = corrections_message.replace("<source_language>", source_language)
+            corrections_message = corrections_message.replace("<target_language>", target_language)
+            corrections_message = corrections_message.replace("<user_message>", user_message)
+            corrections_message_dict = [{"role": "assistant", "content": corrections_message}]
+        print(f"📀📀📀📀 HERE {corrections_message_dict}")
+        corrections_completion = openai.ChatCompletion.create(temperature=0.1, model="gpt-3.5-turbo", messages=corrections_message_dict)
+        corrections_response = json.loads(corrections_completion.choices[0].message["content"])
+    else: 
+        print(f"📀📀📀 suggestion bs")
+        time.sleep(2)
+        corrections_response = {"corrected_message": None, "translated_message": None, "errors": []}
+    
+    pp = pprint.PrettyPrinter(indent=4)
+    print(f"✅✅✅ Corrections. is_suggestion: {is_suggestion}")
+    pp.pprint(corrections_response)
+    return corrections_response
 
 def translate_message(message, from_="es", to="en"):
     """At the moment I'm passing "message", but I could have this translate
@@ -115,6 +113,7 @@ def translate_message(message, from_="es", to="en"):
     result = translator.translate(message)
     return result
 
+'''
 import os
 from dotenv import load_dotenv
 pp = pprint.PrettyPrinter(indent=4)
@@ -136,4 +135,4 @@ messages = [
      #'I was very hungry last night, so I decided to make me a bacon sandwich. I also added some lettuce and tomato. It was amazing.'
 
 main_completion = openai.ChatCompletion.create(temperature=0.1, model="gpt-3.5-turbo", messages=messages)
-pp.pprint(main_completion.choices[0].message["content"])
+pp.pprint(main_completion.choices[0].message["content"])'''

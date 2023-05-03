@@ -2,7 +2,7 @@ from flask import Flask, request, make_response, jsonify
 from flask_cors import CORS
 import os
 from dotenv import load_dotenv
-from functions import get_chat_completion, translate_message
+from functions import get_chat_completion, translate_message, get_message_corrections
 
 load_dotenv()
 CLIENT_URL = os.getenv('CLIENT_URL') # "http://localhost:3000"
@@ -34,6 +34,28 @@ def send_message():
     response.headers["Content-Type"] = "application/json"
     return response
 
+@app.route('/get_corrections', methods=['GET'])
+def get_corrections():
+    user_message = request.args.get('userMessage')
+    source_language = request.args.get("sourceLanguage")
+    target_language = request.args.get("targetLanguage")
+    is_suggestion = request.args.get("isSuggestion")
+    print(f"🔥 Getting corrections, you know it dawg! is_suggestion {is_suggestion}")
+    corrections = get_message_corrections(OPENAI_API_KEY,user_message, source_language, target_language, is_suggestion)
+    # response_data = {"result": corrections}
+    response = make_response(jsonify(corrections))
+    response.headers["Content-Type"] = "application/json"
+    return response
+
+
+
+
+
+
+
+
+
+
 @app.route('/translate', methods=['POST'])
 def translate():
     message = request.json["messageContent"]
@@ -44,6 +66,8 @@ def translate():
     response = make_response(jsonify({"translation": translation}))
     response.headers["Content-Type"] = "application/json"
     return response
+
+
 
 
 if __name__ == "__main__":
