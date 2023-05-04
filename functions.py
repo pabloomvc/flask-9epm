@@ -68,7 +68,7 @@ def get_chat_completion(api_key, chat_history, current_topic, source_language, t
     
     print(f"Versa Replies: {resulting_message['content']}")
     print(f"Versa Translated: {resulting_message['translation']}")
-    print(f"Current Topic: {current_topic['displayMessage']}")
+    print(f"Current Topic: {current_topic}")
     print("Suggestions:")
     for suggestion in resulting_message['suggestions']:
         print(f"\t{suggestion['suggestion']} | {suggestion['translation']}")
