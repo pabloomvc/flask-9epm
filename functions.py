@@ -3,6 +3,7 @@ import json
 from easygoogletranslate import EasyGoogleTranslate
 import pprint
 import time
+from datetime import datetime
 
 def get_chat_completion(api_key, chat_history, current_topic, source_language, target_language, is_suggestion):
 
@@ -21,7 +22,7 @@ def get_chat_completion(api_key, chat_history, current_topic, source_language, t
         instructions = instructions.replace("<target_language>", target_language)
         temp_message = {"role":"user", "content":instructions}
     
-    print("⚪", temp_message)
+    # print("⚪", temp_message)
 
     # For the topic, I'll add an user message that says that says they're at a coffee shop, or whatever the situation is.
     
@@ -54,8 +55,8 @@ def get_chat_completion(api_key, chat_history, current_topic, source_language, t
     openai.api_key = api_key
     main_completion = openai.ChatCompletion.create(temperature=0.1, model="gpt-3.5-turbo", messages= clean_chat_history)
     pp = pprint.PrettyPrinter(indent=4)
-    print("🟢1️⃣")
-    pp.pprint(main_completion.choices[0].message["content"])
+    # print("🟢1️⃣")
+    # pp.pprint(main_completion.choices[0].message["content"])
 
     main_completion_response = json.loads(main_completion.choices[0].message["content"])
 
@@ -64,6 +65,14 @@ def get_chat_completion(api_key, chat_history, current_topic, source_language, t
         "content": main_completion_response["reply"], 
         "suggestions": main_completion_response["suggestions"], 
         "translation": main_completion_response["translation"]}
+    
+    print(f"Versa Replies: {resulting_message['content']}")
+    print(f"Versa Translated: {resulting_message['translation']}")
+    print(f"Current Topic: {current_topic['displayMessage']}")
+    print("Suggestions:")
+    for suggestion in resulting_message['suggestions']:
+        print(f"\t{suggestion['suggestion']} | {suggestion['translation']}")
+
     chat_history.append(resulting_message)
     
     return chat_history
@@ -83,17 +92,21 @@ def get_message_corrections(api_key, user_message, source_language, target_langu
             corrections_message = corrections_message.replace("<target_language>", target_language)
             corrections_message = corrections_message.replace("<user_message>", user_message)
             corrections_message_dict = [{"role": "assistant", "content": corrections_message}]
-        print(f"📀📀📀📀 HERE {corrections_message_dict}")
         corrections_completion = openai.ChatCompletion.create(temperature=0.1, model="gpt-3.5-turbo", messages=corrections_message_dict)
         corrections_response = json.loads(corrections_completion.choices[0].message["content"])
     else: 
-        print(f"📀📀📀 suggestion bs")
         time.sleep(2)
         corrections_response = {"corrected_message": None, "translated_message": None, "errors": []}
     
     pp = pprint.PrettyPrinter(indent=4)
-    print(f"✅✅✅ Corrections. is_suggestion: {is_suggestion}")
-    pp.pprint(corrections_response)
+
+    print(f"\n[{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}]")
+    print(f"---- {source_language} to {target_language} ----")
+    print(f"User Message: {user_message}")
+    print(f"Corrected Message: {corrections_response['corrected_message']}")
+    print(f"Translation: {corrections_response['translated_message']}")
+    print(f"Errors: {corrections_response['errors']}")
+
     return corrections_response
 
 def translate_message(message, from_="es", to="en"):

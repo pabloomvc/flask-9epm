@@ -27,8 +27,6 @@ def send_message():
     target_language = request.json["targetLanguage"]
     current_topic = request.json["currentTopic"] # Create different prompts for each topic.
     is_suggestion = request.json["isSuggestion"]
-    print("⚠️⚠️", current_topic)
-    print(is_suggestion)
     ai_message = get_chat_completion(OPENAI_API_KEY, chat_history, current_topic, source_language, target_language, is_suggestion)
     response = make_response(jsonify(ai_message))
     response.headers["Content-Type"] = "application/json"
@@ -40,7 +38,6 @@ def get_corrections():
     source_language = request.args.get("sourceLanguage")
     target_language = request.args.get("targetLanguage")
     is_suggestion = request.args.get("isSuggestion")
-    print(f"🔥 Getting corrections, you know it dawg! is_suggestion {is_suggestion}")
     corrections = get_message_corrections(OPENAI_API_KEY,user_message, source_language, target_language, is_suggestion)
     # response_data = {"result": corrections}
     response = make_response(jsonify(corrections))
