@@ -9,3 +9,4 @@ Flask-Cors==3.0.10
 openai==0.27.4
 python-dotenv==1.0.0
 easygoogletranslate==0.0.4
+firebase-admin==6.1.0
