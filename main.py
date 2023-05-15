@@ -6,7 +6,7 @@ import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
 import json
-from functions import get_chat_completion, translate_message, get_message_corrections
+from functions import get_chat_completion, translate_message, get_message_corrections, translate_word_by_word
 from datetime import datetime
 
 load_dotenv()
@@ -74,12 +74,18 @@ def get_saved_chats():
 
 @app.route('/save_chat', methods=['POST'])
 def save_chat():
-    chat_history = request.json["chatHistory"]
     user_id = request.json["userId"]
-    topic = request.json["currentTopic"]
+    chat = request.json["currentChat"]
+    print("⭐⭐ SAVING CHAT", chat)
     timestamp = datetime.now().strftime("%Y-%m-%d-%H:%M:%S:%f")
+
+    if not chat.get("topic"):
+        chat["topic"] = "Open Conversation"
+    
+    chat["timestamp"] = timestamp
+
     doc_ref = db.collection(u'users').document(user_id)
-    doc_ref.collection("saved_chats").document(timestamp).set({"id":timestamp, "topic":topic, "messages":chat_history})
+    doc_ref.collection("saved_chats").document(chat["id"]).set(chat)
     response = make_response(jsonify({"response": "chat was saved"}))
     response.headers["Content-Type"] = "application/json"
     return response
@@ -107,6 +113,9 @@ def send_message():
     response.headers["Content-Type"] = "application/json"
     return response
 
+
+
+
 @app.route('/get_corrections', methods=['GET'])
 def get_corrections():
     user_message = request.args.get('userMessage')
@@ -121,7 +130,16 @@ def get_corrections():
 
 
 
-
+@app.route('/get_word_translations', methods=['GET'])
+def get_word_translations():
+    message = request.args.get('message')
+    target_language = request.args.get("targetLangauge")
+    print("Getting word by word")
+    translations = translate_word_by_word(OPENAI_API_KEY, target_language, message)
+    response = make_response(jsonify(translations))
+    response.headers["Content-Type"] = "application/json"
+    return response
+    
 
 
 

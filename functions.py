@@ -109,6 +109,34 @@ def get_message_corrections(api_key, user_message, source_language, target_langu
 
     return corrections_response
 
+def translate_word_by_word(api_key, target_language, message):
+    openai.api_key = api_key
+
+
+    messages = [
+    {"role": "system", 
+        "content": f"""
+        You're a language tutor/translator designed to help the user learn new {target_language} vocabulary. 
+        User will give you a message, you will break it down into it's basic words/expressions, and translate each one of them into English.
+        
+        """},
+    {"role": "user",
+        "content": f"Message: {message}" +
+        """\nFormat your response as JSON with the following keys: 
+        - tranlated_words: an array with the words and their translations [<phrase>, <translation to English>]}
+        """
+        }
+    ]
+    main_completion = openai.ChatCompletion.create(temperature=0.1, model="gpt-3.5-turbo", messages=messages)
+    
+    pp = pprint.PrettyPrinter(indent=4)
+    pp.pprint(main_completion.choices[0].message["content"])
+    
+    return main_completion.choices[0].message["content"]
+
+
+# ---------------------------------------------------------------------------------------------------------------
+
 def translate_message(message, from_="es", to="en"):
     """At the moment I'm passing "message", but I could have this translate
     a single word at a time, and/or the sentence of that word."""
