@@ -8,11 +8,13 @@ from firebase_admin import firestore
 import json
 from functions import get_chat_completion, translate_message, get_message_corrections, translate_word_by_word
 from datetime import datetime
+import requests
 
 load_dotenv()
 FIREBASE_API_CREDS = os.getenv('FIREBASE_API_CREDS')
 CLIENT_URL = os.getenv('CLIENT_URL') # "http://localhost:3000"
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+NARAKEET_API_KEY = os.getenv("NARAKEET_API_KEY")
 
 # Firebase stuff
 firebase_api_creds = json.loads(FIREBASE_API_CREDS.replace("'", '"'))
@@ -114,8 +116,6 @@ def send_message():
     return response
 
 
-
-
 @app.route('/get_corrections', methods=['GET'])
 def get_corrections():
     user_message = request.args.get('userMessage')
@@ -129,7 +129,6 @@ def get_corrections():
     return response
 
 
-
 @app.route('/get_word_translations', methods=['GET'])
 def get_word_translations():
     message = request.args.get('message')
@@ -140,6 +139,34 @@ def get_word_translations():
     response.headers["Content-Type"] = "application/json"
     return response
     
+"""
+GETTING AUDIO
+"""
+
+@app.route('/get_speech', methods=['GET'])
+def get_speech():
+    message = request.args.get('message')
+    print("✅Getting speech", message)
+    voice = 'luigi'
+    # text = """Posta al centro della penisola, Roma è anche il principale nodo ferroviario dell'Italia centrale, collegata mediante le linee ad alta velocità con Firenze e Napoli."""
+    url = f'https://api.narakeet.com/text-to-speech/m4a?voice={voice}'
+
+    options = {
+        'headers': {
+            'Accept': 'application/octet-stream',
+            'Content-Type': 'text/plain',
+            'x-api-key': NARAKEET_API_KEY,
+        },
+        'data': message.encode('utf8')
+    }
+
+    result_speech = requests.post(url, **options).content
+    response = make_response(result_speech)
+    response.headers["Content-Type"] = "audio/mpeg"
+    return response
+
+    # with open('output.m4a', 'wb') as f:
+    #     f.write(requests.post(url, **options).content)
 
 
 
