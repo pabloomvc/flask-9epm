@@ -30,22 +30,27 @@ def get_chat_completion(api_key, chat_history, current_topic, source_language, t
     # Then load the content into the context_message
     # Add that message to the beginning of the convo, right after the initial prompt, using insert(1)
     # NOTE: Maybe I should do this from the functions.py. But the logic remains.
-    
-    if current_topic:
+    print("CURRENT TOPIC", current_topic)
+    if current_topic["type"] != "tutor":
         if current_topic["type"] == "situation":
             with open("prompts/situation_prompt.txt", "r") as situation_prompt_file:
                 situation_message = situation_prompt_file.read()
-                situation_message = situation_message.replace("<situation>", current_topic["title"])
-                situation_message = situation_message.replace("<source_language>", source_language)
-                situation_message = situation_message.replace("<target_language>", target_language)
         elif current_topic["type"] == "personal":
             with open("prompts/personal_prompt.txt", "r") as personal_prompt_file:
                 situation_message = personal_prompt_file.read()
-                situation_message = situation_message.replace("<situation>", current_topic["title"])
-                situation_message = situation_message.replace("<source_language>", source_language)
-                situation_message = situation_message.replace("<target_language>", target_language)
+        elif current_topic["type"] == "interests":
+            with open("prompts/interests_prompt.txt", "r") as interests_prompt_file:
+                situation_message = interests_prompt_file.read()
+        elif current_topic["type"] == "productivity":
+            with open("prompts/productivity_prompt.txt", "r") as productivity_prompt_file:
+                situation_message = productivity_prompt_file.read()
+
+        situation_message = situation_message.replace("<situation>", current_topic["title"])
+        situation_message = situation_message.replace("<source_language>", source_language)
+        situation_message = situation_message.replace("<target_language>", target_language)
         context_message = {"role":"user", "content": situation_message}
         full_chat_history = [system_message_object] + [context_message] + chat_history[:-1] + [temp_message]
+
     else:
         full_chat_history = [system_message_object] +  chat_history[:-1] + [temp_message]
 
