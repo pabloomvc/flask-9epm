@@ -68,7 +68,7 @@ def get_saved_chats():
 
     # saved_chats.sort(key=lambda chat_element: chat_element[0]) # change the sort cuz saved_chats is now a list of dicts
 
-    print("👀👀 Saved chats", saved_chats)
+    # print("👀👀 Saved chats", saved_chats)
     response = make_response(jsonify(saved_chats))
     response.headers["Content-Type"] = "application/json"
     return response
@@ -133,8 +133,10 @@ def get_corrections():
 @app.route('/get_word_translations', methods=['GET'])
 def get_word_translations():
     message = request.args.get('message')
-    target_language = request.args.get("targetLangauge")
-    print("Getting word by word")
+    target_language = request.args.get("targetLanguage")
+    print("📆 Getting word by word")
+    print("📆📆", message)
+    print("📆📆", target_language)
     translations = translate_word_by_word(OPENAI_API_KEY, target_language, message)
     response = make_response(jsonify(translations))
     response.headers["Content-Type"] = "application/json"
@@ -154,6 +156,7 @@ def get_speech():
 
     options = {
         'headers': {
+            
             'Accept': 'application/octet-stream',
             'Content-Type': 'text/plain',
             'x-api-key': NARAKEET_API_KEY,

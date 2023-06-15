@@ -117,27 +117,31 @@ def get_message_corrections(api_key, user_message, source_language, target_langu
 def translate_word_by_word(api_key, target_language, message):
     openai.api_key = api_key
 
+    with open("prompts/word_by_word/system_prompt.txt", "r") as system_prompt_file:
+        system_prompt = system_prompt_file.read()
+        system_prompt = system_prompt.replace("<target_language>", target_language)
+
+    with open("prompts/word_by_word/message_prompt.txt", "r") as message_prompt_file:
+        message_prompt = message_prompt_file.read()
+        message_prompt = message_prompt.replace("<message>", message)
 
     messages = [
     {"role": "system", 
-        "content": f"""
-        You're a language tutor/translator designed to help the user learn new {target_language} vocabulary. 
-        User will give you a message, you will break it down into it's basic words/expressions, and translate each one of them into English.
-        
-        """},
+        "content": system_prompt},
     {"role": "user",
-        "content": f"Message: {message}" +
-        """\nFormat your response as JSON with the following keys: 
-        - tranlated_words: an array with the words and their translations [<phrase>, <translation to English>]}
-        """
+        "content": message_prompt
         }
     ]
-    main_completion = openai.ChatCompletion.create(temperature=0.1, model="gpt-3.5-turbo", messages=messages)
-    
+    main_completion = openai.ChatCompletion.create(temperature=0.3, model="gpt-3.5-turbo", messages=messages)
+    main_completion_json = json.loads(main_completion.choices[0].message["content"])
     pp = pprint.PrettyPrinter(indent=4)
     pp.pprint(main_completion.choices[0].message["content"])
-    
-    return main_completion.choices[0].message["content"]
+    # print("COMPLETION TYPE:", type(main_completion.choices[0].message["content"]))
+    return main_completion_json
+
+
+# OPENAI_API_KEY = OPENAI_API_KEY="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"
+# translate_word_by_word(OPENAI_API_KEY, "Spanish", "Gracias! La pizza estaba deliciosa. ¿Cómo puedo pagarte?")
 
 
 # ---------------------------------------------------------------------------------------------------------------
@@ -158,6 +162,9 @@ def translate_message(message, from_="es", to="en"):
     )
     result = translator.translate(message)
     return result
+
+
+
 
 '''
 import os
