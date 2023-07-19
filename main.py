@@ -116,6 +116,32 @@ def send_message():
     response.headers["Content-Type"] = "application/json"
     return response
 
+@app.route('/handle_streak', methods=['POST'])
+def handle_streak():
+    user_id = request.json["userId"]
+    is_streak = request.json["isStreak"]
+    target_language = request.json["targetLanguage"]
+    convo_level = request.json["convoLevel"]
+
+    if convo_level == "1": 
+        if is_streak: 
+            pass
+            # streak += 1
+        # points += 1 (but on the db ofc, using user_id and target_language)
+        # num of convos += 1
+    elif convo_level == "2": 
+        pass
+        # points += 1
+    elif convo_level == "3": 
+        pass 
+        # points += 1
+        # and crowns? idk 
+
+    response = make_response(jsonify({}))
+    response.headers["Content-Type"] = "application/json"
+    return response
+
+
 
 @app.route('/get_corrections', methods=['GET'])
 def get_corrections():
@@ -141,6 +167,9 @@ def get_word_translations():
     response = make_response(jsonify(translations))
     response.headers["Content-Type"] = "application/json"
     return response
+
+
+
     
 """
 GETTING AUDIO

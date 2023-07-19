@@ -97,7 +97,7 @@ def get_message_corrections(api_key, user_message, source_language, target_langu
             corrections_message = corrections_message.replace("<target_language>", target_language)
             corrections_message = corrections_message.replace("<user_message>", user_message)
             corrections_message_dict = [{"role": "assistant", "content": corrections_message}]
-        corrections_completion = openai.ChatCompletion.create(temperature=0.1, model="gpt-3.5-turbo", messages=corrections_message_dict)
+        corrections_completion = openai.ChatCompletion.create(temperature=0.1, model="gpt-4", messages=corrections_message_dict)
         corrections_response = json.loads(corrections_completion.choices[0].message["content"])
     else: 
         time.sleep(2)
@@ -132,7 +132,7 @@ def translate_word_by_word(api_key, target_language, message):
         "content": message_prompt
         }
     ]
-    main_completion = openai.ChatCompletion.create(temperature=0.3, model="gpt-3.5-turbo", messages=messages)
+    main_completion = openai.ChatCompletion.create(temperature=0.3, model="gpt-4", messages=messages)
     main_completion_json = json.loads(main_completion.choices[0].message["content"])
     pp = pprint.PrettyPrinter(indent=4)
     pp.pprint(main_completion.choices[0].message["content"])
