@@ -1,4 +1,4 @@
 Message: <message>
 
 Format your response as JSON object with the following keys: 
-- translations: an array with each one of the most fundamental and shortest syntactic units, and their translations in the context of the message [<each syntactic unit>, <the syntactical unit's translation to English>]}
+- translations: an array with each one of the words in the sentence, and their translations in the context of the message [<each syntactic unit>, <the syntactical unit's translation to English>]}

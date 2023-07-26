@@ -82,6 +82,111 @@ def get_chat_completion(api_key, chat_history, current_topic, source_language, t
     
     return chat_history
 
+
+def get_tutor_message(api_key, current_topic, target_language, tutor_command, user_question):
+    print("⭐⭐⭐⭐⭐⭐⭐", current_topic, target_language, tutor_command, user_question)
+    
+    openai.api_key = api_key
+
+    if tutor_command == "/phrasing":
+        with open("prompts/tutor_prompts/phrasing_prompt.txt", "r") as phrasing_prompt_file:
+            system_msg = phrasing_prompt_file.read()
+        
+        system_msg = system_msg.replace("<target_language>", target_language)
+        chat_history = [{"role": "system", "content": system_msg}, {"role": "user", "content": user_question}]
+        main_completion = openai.ChatCompletion.create(temperature=0.1, model="gpt-4", messages= chat_history)
+        print(main_completion.choices[0].message["content"])
+        main_completion_response = json.loads(main_completion.choices[0].message["content"], strict=False)
+        resulting_message = {
+            "role": "assistant", 
+            "tutor_command": tutor_command,
+            "response": main_completion_response["response"], 
+            "phrases": main_completion_response["phrases"]
+            }
+    elif tutor_command == "/vocab":
+        with open("prompts/tutor_prompts/vocabulary_prompt.txt", "r") as vocabulary_prompt_file:
+            system_msg = vocabulary_prompt_file.read()
+        system_msg = system_msg.replace("<target_language>", target_language)
+        chat_history = [{"role": "system", "content": system_msg}, {"role": "user", "content": user_question}]
+        main_completion = openai.ChatCompletion.create(temperature=0.1, model="gpt-4", messages= chat_history)
+        print(main_completion.choices[0].message["content"])
+        main_completion_response = json.loads(main_completion.choices[0].message["content"], strict=False)
+        resulting_message = {
+            "role": "assistant", 
+            "tutor_command": tutor_command,
+            "response": main_completion_response["response"], 
+            "vocab": main_completion_response["vocab"]
+            }
+    elif tutor_command == "/grammar":
+        with open("prompts/tutor_prompts/grammar_prompt.txt", "r") as grammar_prompt_file:
+            system_msg = grammar_prompt_file.read()
+            print(system_msg)
+
+        system_msg = system_msg.replace("<target_language>", target_language)
+        chat_history = [{"role": "system", "content": system_msg}, {"role": "user", "content": user_question}]
+        main_completion = openai.ChatCompletion.create(temperature=0.1, model="gpt-4", messages= chat_history)
+        print(main_completion.choices[0].message["content"])
+        main_completion_response = json.loads(main_completion.choices[0].message["content"], strict=False)   
+        resulting_message = {
+            "role": "assistant", 
+            "tutor_command": tutor_command,
+            "title": main_completion_response["title"], 
+            "explanation": main_completion_response["explanation"],
+            "examples": main_completion_response["examples"]
+            }
+        
+    elif tutor_command == "/examples":
+        # TODO: The prompt, modeing the resulting_message, and the frontend to display the information.
+        with open("prompts/tutor_prompts/examples_prompt.txt", "r") as examples_prompt_file:
+            system_msg = examples_prompt_file.read()
+            print(system_msg)
+
+        
+        user_template=f"""
+User Message: {user_question}        
+Format your response as JSON containing the following keys:
+- "response": A friendly response to the user, explaining the usage of the word/expression if necessary, in English.
+- "sentences": An array of 7 arrays. Each sub-array should look like this: [<example sentence in {target_language}>: <English translation>]"""
+        system_msg = system_msg.replace("<target_language>", target_language)
+        chat_history = [{"role": "system", "content": system_msg}, {"role": "user", "content": user_template}]
+        main_completion = openai.ChatCompletion.create(temperature=0.1, model="gpt-4", messages= chat_history)
+        print(main_completion.choices[0].message["content"])
+        main_completion_response = json.loads(main_completion.choices[0].message["content"], strict=False)   
+        resulting_message = {
+            "role": "assistant", 
+            "tutor_command": tutor_command,
+            "response": main_completion_response["response"],
+            "sentences": main_completion_response["sentences"]
+            }
+    else:
+        with open("prompts/tutor_prompts/base_prompt.txt", "r") as base_prompt_file:
+            system_msg = base_prompt_file.read()
+        user_template = f"""
+User Message: {user_question}
+Format your responses as JSON containing the following keys:
+- "title": A title summarizing the user's question.
+- "explanation": A friendly, concise, and detailed explanation, centered exclussively around learning {target_language}, and providing examples when necessary."""
+        system_msg = system_msg.replace("<target_language>", target_language)
+        chat_history = [{"role": "system", "content": system_msg}, {"role": "user", "content": user_template}]
+        main_completion = openai.ChatCompletion.create(temperature=0.1, model="gpt-4", messages= chat_history)
+        
+        print("🤣", main_completion.choices[0].message["content"])
+        main_completion_response = json.loads(main_completion.choices[0].message["content"], strict=False)   
+        resulting_message = {
+            "role": "assistant", 
+            "tutor_command": tutor_command,
+            "title": main_completion_response["title"], 
+            "explanation": main_completion_response["explanation"]
+            }
+
+
+    print(resulting_message)
+    
+    chat_history.append(main_completion_response)
+    return resulting_message
+
+
+
 def get_message_corrections(api_key, user_message, source_language, target_language, is_suggestion=False):
     
     # GETTING MESSAGE CORRECTIONS!

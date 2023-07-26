@@ -6,7 +6,7 @@ import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
 import json
-from functions import get_chat_completion, translate_message, get_message_corrections, translate_word_by_word
+from functions import get_chat_completion, translate_message, get_message_corrections, translate_word_by_word, get_tutor_message
 from datetime import datetime
 import requests
 
@@ -112,6 +112,17 @@ def send_message():
     print("😊", current_topic)
     is_suggestion = request.json["isSuggestion"]
     ai_message = get_chat_completion(OPENAI_API_KEY, chat_history, current_topic, source_language, target_language, is_suggestion)
+    response = make_response(jsonify(ai_message))
+    response.headers["Content-Type"] = "application/json"
+    return response
+
+@app.route('/send_tutor_message', methods=['POST'])
+def send_tutor_message():
+    target_language = request.json["targetLanguage"]
+    current_topic = request.json["currentTopic"]
+    tutor_command = request.json["tutorCommand"]
+    user_question = request.json["userQuestion"]
+    ai_message = get_tutor_message(OPENAI_API_KEY, current_topic, target_language, tutor_command, user_question)
     response = make_response(jsonify(ai_message))
     response.headers["Content-Type"] = "application/json"
     return response
