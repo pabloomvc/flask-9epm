@@ -43,14 +43,16 @@ def get_chat_completion(api_key, chat_history, current_topic, source_language, t
         print("🚀", chat_history)
         full_chat_history = [system_prompt_object] + [instructions_message]
     else:
-        chat_history[-1]["content"] += instructions
-        full_chat_history = [system_prompt_object] + chat_history
+        # chat_history[-1]["content"] += f"\n\ninstructions"
+        full_chat_history = [system_prompt_object] + chat_history + [instructions_message]
+        
+    #full_chat_history[-1]["content"] = full_chat_history[-1]["content"] + "\n\n" + instructions
 
-    # full_chat_history[-1]["content"] += "\n" + instructions
-
-    print("\nFULL CHAT")
-    print(full_chat_history)
+    
     clean_chat_history = [{"role": message["role"], "content": message["content"]} for message in full_chat_history]
+    print("\nFULL CHAT CLEAN")
+    for msg in clean_chat_history:
+        print(msg)
     
     # Getting completion --------------------------------------------------------------
     openai.api_key = api_key
