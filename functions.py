@@ -9,74 +9,73 @@ def get_chat_completion(api_key, chat_history, current_topic, source_language, t
 
     # Load system prompt
     with open("prompts/initial_prompt.txt", "r") as initial_prompt_file:
-        prompt_content = initial_prompt_file.read()
-        prompt_content = prompt_content.replace("<source_language>", source_language)
-        prompt_content = prompt_content.replace("<target_language>", target_language)
-        system_message_object = {"role": "system", "content": prompt_content}
+        initial_prompt_content = initial_prompt_file.read()
+        
+    if current_topic["type"] == "situation":
+        with open("prompts/situation_prompts/situation_prompt.txt", "r") as situation_prompt_file:
+            situation_message = situation_prompt_file.read()
+    elif current_topic["type"] == "personal":
+        with open("prompts/situation_prompts/personal_prompt.txt", "r") as personal_prompt_file:
+            situation_message = personal_prompt_file.read()
+    elif current_topic["type"] == "interests":
+        with open("prompts/situation_prompts/interests_prompt.txt", "r") as interests_prompt_file:
+            situation_message = interests_prompt_file.read()
+    elif current_topic["type"] == "productivity":
+        with open("prompts/situation_prompts/productivity_prompt.txt", "r") as productivity_prompt_file:
+            situation_message = productivity_prompt_file.read()
 
-    # Add the instructions to the last message entered by the user.
+    system_prompt = f"{initial_prompt_content}\n{situation_message}"
+    system_prompt = system_prompt.replace("<situation>", current_topic["title"])
+    system_prompt = system_prompt.replace("<source_language>", source_language)
+    system_prompt = system_prompt.replace("<target_language>", target_language)
+
+    system_prompt_object = {"role": "system", "content": system_prompt}
+
+    # Add the instructions to the last message in the chat.
     with open("prompts/message_instructions.txt", "r") as message_instructions_file:
         instructions = message_instructions_file.read()
-        instructions = instructions.replace("<user_message>", chat_history[-1]["content"])
+        # instructions = instructions.replace("<user_message>", chat_history[-1]["content"])
         instructions = instructions.replace("<source_language>", source_language)
         instructions = instructions.replace("<target_language>", target_language)
-        temp_message = {"role":"user", "content":instructions}
-    
-    # print("⚪", temp_message)
+        instructions_message = {"role": "user", "content": instructions}
 
-    # For the topic, I'll add an user message that says that says they're at a coffee shop, or whatever the situation is.
-    
-    # Open one of the many situation files I'll have, where I'll store the context messages for each situation.
-    # Then load the content into the context_message
-    # Add that message to the beginning of the convo, right after the initial prompt, using insert(1)
-    # NOTE: Maybe I should do this from the functions.py. But the logic remains.
-    print("CURRENT TOPIC", current_topic)
-    if current_topic["type"] != "tutor":
-        if current_topic["type"] == "situation":
-            with open("prompts/situation_prompt.txt", "r") as situation_prompt_file:
-                situation_message = situation_prompt_file.read()
-        elif current_topic["type"] == "personal":
-            with open("prompts/personal_prompt.txt", "r") as personal_prompt_file:
-                situation_message = personal_prompt_file.read()
-        elif current_topic["type"] == "interests":
-            with open("prompts/interests_prompt.txt", "r") as interests_prompt_file:
-                situation_message = interests_prompt_file.read()
-        elif current_topic["type"] == "productivity":
-            with open("prompts/productivity_prompt.txt", "r") as productivity_prompt_file:
-                situation_message = productivity_prompt_file.read()
-
-        situation_message = situation_message.replace("<situation>", current_topic["title"])
-        situation_message = situation_message.replace("<source_language>", source_language)
-        situation_message = situation_message.replace("<target_language>", target_language)
-        context_message = {"role":"user", "content": situation_message}
-        full_chat_history = [system_message_object] + [context_message] + chat_history[:-1] + [temp_message]
-
+    if len(chat_history)==0:
+        print("🚀", chat_history)
+        full_chat_history = [system_prompt_object] + [instructions_message]
     else:
-        full_chat_history = [system_message_object] +  chat_history[:-1] + [temp_message]
+        chat_history[-1]["content"] += instructions
+        full_chat_history = [system_prompt_object] + chat_history
 
-    # print("📖", full_chat_history)
+    # full_chat_history[-1]["content"] += "\n" + instructions
+
+    print("\nFULL CHAT")
+    print(full_chat_history)
     clean_chat_history = [{"role": message["role"], "content": message["content"]} for message in full_chat_history]
     
+    # Getting completion --------------------------------------------------------------
     openai.api_key = api_key
-    main_completion = openai.ChatCompletion.create(temperature=0.1, model="gpt-3.5-turbo", messages= clean_chat_history)
+    main_completion = openai.ChatCompletion.create(temperature=0.9, model="gpt-3.5-turbo", messages= clean_chat_history)
     pp = pprint.PrettyPrinter(indent=4)
-    # print("🟢1️⃣")
-    # pp.pprint(main_completion.choices[0].message["content"])
+    print("🟢1️⃣")
+    pp.pprint(main_completion.choices[0].message["content"])
 
+    # Parsing the result --------------------------------------------------------------
     main_completion_response = json.loads(main_completion.choices[0].message["content"])
-
     resulting_message = {
         "role": main_completion.choices[0].message["role"], 
         "content": main_completion_response["reply"], 
         "suggestions": main_completion_response["suggestions"], 
         "translation": main_completion_response["translation"]}
     
+    # Logs -----------------------------------------------------------------------------
+    print("\nLOGS ------------")
+    try:
+        print(f"User said: {chat_history[-1]['content']}")
+    except IndexError:
+        print("CONVERSATION STARTED")
+    print(f"Current Topic: {current_topic}")
     print(f"Versa Replies: {resulting_message['content']}")
     print(f"Versa Translated: {resulting_message['translation']}")
-    print(f"Current Topic: {current_topic}")
-    print("Suggestions:")
-    for suggestion in resulting_message['suggestions']:
-        print(f"\t{suggestion['suggestion']} | {suggestion['translation']}")
 
     chat_history.append(resulting_message)
     
@@ -133,8 +132,7 @@ def get_tutor_message(api_key, current_topic, target_language, tutor_command, us
             "title": main_completion_response["title"], 
             "explanation": main_completion_response["explanation"],
             "examples": main_completion_response["examples"]
-            }
-        
+            }  
     elif tutor_command == "/examples":
         # TODO: The prompt, modeing the resulting_message, and the frontend to display the information.
         with open("prompts/tutor_prompts/examples_prompt.txt", "r") as examples_prompt_file:
@@ -178,9 +176,6 @@ Format your responses as JSON containing the following keys:
             "title": main_completion_response["title"], 
             "explanation": main_completion_response["explanation"]
             }
-
-
-    print(resulting_message)
     
     chat_history.append(main_completion_response)
     return resulting_message
@@ -213,9 +208,16 @@ def get_message_corrections(api_key, user_message, source_language, target_langu
     print(f"\n[{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}]")
     print(f"---- {source_language} to {target_language} ----")
     print(f"User Message: {user_message}")
-    print(f"Corrected Message: {corrections_response['corrected_message']}")
-    print(f"Translation: {corrections_response['translated_message']}")
-    print(f"Errors: {corrections_response['errors']}")
+    try:
+        print(f"Corrected Message: {corrections_response['corrected_message']}")
+        print(f"Translation: {corrections_response['translated_message']}")
+        print(f"Errors: {corrections_response['errors']}")
+    except Exception as e:
+        print("\nError logging the corrections_response")
+        print(corrections_response)
+        print(e)
+
+
 
     return corrections_response
 

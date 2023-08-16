@@ -9,12 +9,18 @@ import json
 from functions import get_chat_completion, translate_message, get_message_corrections, translate_word_by_word, get_tutor_message
 from datetime import datetime
 import requests
+from elevenlabs import generate, set_api_key, save
+
+
 
 load_dotenv()
 FIREBASE_API_CREDS = os.getenv('FIREBASE_API_CREDS')
 CLIENT_URL = os.getenv('CLIENT_URL') # "http://localhost:3000"
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 NARAKEET_API_KEY = os.getenv("NARAKEET_API_KEY")
+
+# Eleven Labs stuff
+set_api_key(os.getenv("ELEVEN_LABS_API_KEY"))
 
 # Firebase stuff
 firebase_api_creds = json.loads(FIREBASE_API_CREDS.replace("'", '"'))
@@ -24,6 +30,7 @@ db = firestore.client()
 
 # Flask stuff
 app = Flask(__name__)
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # Set maximum file size (here 16MB)
 cors = CORS(app, origins=CLIENT_URL)
 
 """
@@ -211,6 +218,47 @@ def get_speech():
 
     # with open('output.m4a', 'wb') as f:
     #     f.write(requests.post(url, **options).content)
+
+
+
+@app.route('/receiving_recording', methods=['POST'])
+def receiving_recording():
+    print("♥️ THE ENDPOINT HAS BEEN HIT")
+    print("JSON:", request.json["data"])
+    print("files:", request.files)
+    print("keys:", request.form.keys())
+    print("items:", request.form.items())
+    
+    #audio_file = request.files["audio-file"]
+    """print(request.files)
+    audio_file = request.files['audio-file']
+
+    # You can now process the audio file as needed.
+    # For example, save it to disk:
+    audio_file.save('uploaded_audio.wav')"""
+    response = make_response(jsonify({"response":"hiiiii"}))
+    response.headers["Content-Type"] = "application/json"
+    return response
+
+
+@app.route('/get_voice_file', methods=['GET'])
+def get_voice_file():
+
+    text = request.args.get('text')
+    print(f"⭐ Obteniendo: {text}")
+    audio = generate(
+    text=text,
+    voice="Charlotte",
+    model="eleven_multilingual_v1")
+    # save(audio, "FILE.mp3")
+    
+    # Create a response containing the audio bytes.
+    response = make_response(audio)
+    response.headers.set('Content-Type', 'audio/mpeg')
+    response.headers.set('Content-Disposition', 'attachment', filename='audio.mp3')
+
+    return response
+
 
 
 
