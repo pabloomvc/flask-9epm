@@ -178,8 +178,9 @@ def get_corrections():
 def get_word_translations():
     message = request.args.get('message')
     target_language = request.args.get("targetLanguage")
+
     print("📆 Getting word by word")
-    print("📆📆", message)
+    print("📆📆", f"Message: {message} - Len:{len(message)}")
     print("📆📆", target_language)
     translations = translate_word_by_word(OPENAI_API_KEY, target_language, message)
     response = make_response(jsonify(translations))

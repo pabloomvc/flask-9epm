@@ -231,18 +231,24 @@ def translate_word_by_word(api_key, target_language, message):
         system_prompt = system_prompt.replace("<target_language>", target_language)
 
     with open("prompts/word_by_word/message_prompt.txt", "r") as message_prompt_file:
-        message_prompt = message_prompt_file.read()
-        message_prompt = message_prompt.replace("<message>", message)
+        formatting_prompt = message_prompt_file.read()
+        # formatting_prompt = formatting_prompt.replace("<message>", message)
 
     messages = [
     {"role": "system", 
         "content": system_prompt},
     {"role": "user",
-        "content": message_prompt
-        }
+        "content": f"Translate the following message from {target_language} to English, word by word:\n{message}"
+        }, 
+    {"role": "user", 
+     "content": formatting_prompt}
     ]
-    main_completion = openai.ChatCompletion.create(temperature=0.3, model="gpt-4", messages=messages)
-    main_completion_json = json.loads(main_completion.choices[0].message["content"])
+    if message:
+        main_completion = openai.ChatCompletion.create(temperature=0.3, model="gpt-4", messages=messages)
+        main_completion_json = json.loads(main_completion.choices[0].message["content"])
+    else:
+        main_completion = {"translations":[]}
+        
     pp = pprint.PrettyPrinter(indent=4)
     pp.pprint(main_completion.choices[0].message["content"])
     # print("COMPLETION TYPE:", type(main_completion.choices[0].message["content"]))
