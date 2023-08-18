@@ -18,6 +18,7 @@ FIREBASE_API_CREDS = os.getenv('FIREBASE_API_CREDS')
 CLIENT_URL = os.getenv('CLIENT_URL') # "http://localhost:3000"
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 NARAKEET_API_KEY = os.getenv("NARAKEET_API_KEY")
+NOTION_TOKEN = os.getenv("NOTION_TOKEN")
 
 # Eleven Labs stuff
 set_api_key(os.getenv("ELEVEN_LABS_API_KEY"))
@@ -41,6 +42,41 @@ def test_endpoint():
     response.headers["Content-Type"] = "application/json"
     return response
 """
+
+# Notion analytics
+@app.route('/log_chat', methods=['POST'])
+def log_chat():
+
+    user_email = request.json["userEmail"]
+    topic = request.json["topic"]
+    target_language = request.json["targetLanguage"]
+
+    DATABASE_ID = "82848bda0a7d4505ab52d5115da6d65d"
+    create_url = "https://api.notion.com/v1/pages"
+    created_date = datetime.now().isoformat()
+
+    headers = {
+        "Authorization": "Bearer " + NOTION_TOKEN,
+        "Content-Type": "application/json",
+        "Notion-Version": "2022-06-28",
+    }
+    data = {
+        "User": {"title": [{"text": {"content": user_email}}]},
+        "Topic": {"select": {"name": topic}},
+        "Language": {"select": {"name": target_language}},
+        # "Length": { "number": 2.5 },
+        "Created": {"date": {"start": created_date, "end": None}}
+        }
+
+    payload = {"parent": {"database_id": DATABASE_ID}, "properties": data}
+    print("😂😂😂😂 LOOOOGGGINNGG")
+    print(payload)
+    res = requests.post(create_url, headers=headers, json=payload)
+    print("😂😂", res.status_code, res.text)
+    res_data = {"response": "chat_logged"}
+    response = make_response(jsonify(res_data))
+    response.headers["Content-Type"] = "application/json"
+    return response
 
 @app.route('/create_user', methods=['POST'])
 def create_user(): 
