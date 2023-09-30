@@ -6,7 +6,8 @@ import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
 import json
-from functions import get_chat_completion, translate_message, get_message_corrections, translate_word_by_word, get_tutor_message
+# from functions import get_chat_completion, translate_message, get_message_corrections, translate_word_by_word, get_tutor_message, get_vocab_data
+from functions import *
 from datetime import datetime
 import requests
 from elevenlabs import generate, set_api_key, save
@@ -103,7 +104,8 @@ def create_user():
 def get_saved_chats():
     # Getting saved chats from Firebase
     user_id = request.args.get('user_id')
-    doc_ref = db.collection(u'users').document(user_id)
+    target_language = request.args.get('target_language')
+    doc_ref = db.collection(u'users').document(user_id).collection("courses").document(target_language)
     saved_chats = []
     
     for chat in doc_ref.collection("saved_chats").list_documents():
@@ -115,7 +117,6 @@ def get_saved_chats():
     response = make_response(jsonify(saved_chats))
     response.headers["Content-Type"] = "application/json"
     return response
-
 
 @app.route('/save_chat', methods=['POST'])
 def save_chat():
@@ -129,7 +130,7 @@ def save_chat():
     
     chat["timestamp"] = timestamp
 
-    doc_ref = db.collection(u'users').document(user_id)
+    doc_ref = db.collection(u'users').document(user_id).collection("courses").document(chat["targetLanguage"])
     doc_ref.collection("saved_chats").document(chat["id"]).set(chat)
     response = make_response(jsonify({"response": "chat was saved"}))
     response.headers["Content-Type"] = "application/json"
@@ -139,12 +140,126 @@ def save_chat():
 def unsave_chat():
     user_id = request.json["userId"]
     chat_id = request.json["chatId"]
-    doc_ref = db.collection(u'users').document(user_id)
+    target_language = request.json["targetLanguage"]
+    doc_ref = db.collection(u'users').document(user_id).collection("courses").document(target_language)
     doc_ref.collection("saved_chats").document(chat_id).delete()
     response = make_response(jsonify({"response": "chat was UNsaved"}))
     response.headers["Content-Type"] = "application/json"
     return response
 
+@app.route('/save_correction', methods=['POST'])
+def save_correction():
+    user_id = request.json["userId"]
+    correction = request.json["correction"]
+    target_language = request.json["targetLanguage"]
+    print("Saving correction yay")
+    doc_ref = db.collection(u'users').document(user_id).collection("courses").document(target_language)
+    doc_ref.collection("saved_corrections").document(correction['id']).set(correction)
+    response = make_response(jsonify({"response": "correction was saved"}))
+    response.headers["Content-Type"] = "application/json"
+    return response
+
+@app.route('/save_word', methods=['POST'])
+def save_word():
+    user_id = request.json["userId"]
+    targetW = request.json["targetW"]
+    sourceW = request.json["sourceW"]
+    sentence = request.json["sentence"]
+    translation = request.json["translation"]
+    target_language = request.json["targetLanguage"]
+
+    # TODO
+    # Aquí tomar la palabra y usar gpt para obtener:
+    # part of speech, otros ejemplos, sinónimos.
+    # Luego tambien en alguna parte de la pagina del vocab, agregar la 
+    # opción de hacer preguntas, y también de obtener más ejemplos 
+    # Ah y la opción de expandir en la definición. 
+    # Y si es verbo, la raíz
+    # Y qué tan común es.
+
+    # En la pagina de vocab, agregar la opcion de reordenar por part of speech.
+    # Aun no voy a hacer lo de las palabras comunes. Solo me quedaré con las palabras guardadas.
+
+    # En el chat, cada vez que guarde una palabra, agregarla a una lista (state var)
+    # asi voy a poder ver que palabras fueron ya agregadas.
+
+    # Agregar tambien las opciones del chat en la tarjeta del chat en el dashboard.
+    # Y el botón para cambiarlas.
+
+    # Y luego el streak.
+    # Tanto desde el chat (ui, barra de progreso)
+    # Como en la tarjeta del chat, o en algún lugar del dashboard (un ícono)
+
+    vocab_data = get_vocab_data(OPENAI_API_KEY, targetW, sentence, target_language)
+    full_vocab_data = {
+        "targetW": targetW, 
+        "sourceW": sourceW, 
+        "sentence": sentence, 
+        "translation": translation,
+        "common": vocab_data["common"],
+        "part_of_speech": vocab_data["pos"], 
+        "examples": vocab_data["examples"], 
+        "base": vocab_data["base"]
+    }
+    if "phonetic" in vocab_data:
+        full_vocab_data["phonetic"] = vocab_data["phonetic"]
+
+        
+    print("FULL VOCAB", full_vocab_data)
+
+    print("Saving word yay")
+    doc_ref = db.collection(u'users').document(user_id).collection("courses").document(target_language)
+    doc_ref.collection("saved_words").document(targetW).set(full_vocab_data)
+    response = make_response(jsonify({"response": "word was saved"}))
+    response.headers["Content-Type"] = "application/json"
+    return response
+
+@app.route('/get_saved_words', methods=['GET'])
+def get_saved_words():
+    user_id = request.args.get('userId')
+    target_language = request.args.get('targetLanguage')
+    print("Params")
+    print(user_id, target_language)
+    doc_ref = db.collection(u'users').document(user_id).collection("courses").document(target_language)
+    saved_words = []
+    for word_doc in doc_ref.collection("saved_words").list_documents():
+        saved_words.append(word_doc.get().to_dict())
+    # Aquí obtener los ejemplos y todo usando gpt
+    print("Saved Words")
+    print(saved_words)
+    response = make_response(jsonify(saved_words))
+    response.headers["Content-Type"] = "application/json"
+    return response
+
+@app.route('/get_courses_list', methods=['GET'])
+def get_courses_list():
+    user_id = request.args.get('userId')
+    doc_ref = db.collection(u'users').document(user_id).collection("courses")
+    courses_list = []
+    for course in doc_ref.list_documents():
+        print("✌️", course.get().id)
+        id_, created = course.get().id, course.get().to_dict().get("created", "000000")
+        courses_list.append((created, id_))
+    courses_list.sort(reverse=True)
+    print("👊 Sorted")
+    for course in courses_list:
+        print(course)
+    courses_list = [course[1] for course in courses_list]
+    response = make_response(jsonify(courses_list))
+    response.headers["Content-Type"] = "application/json"
+    return response
+
+@app.route('/add_language', methods=['POST'])
+def add_language():
+    user_id = request.json["userId"]
+    language = request.json["language"]
+    doc_ref = db.collection(u'users').document(user_id).collection("courses")
+    created_date = datetime.now().isoformat()
+    doc_ref.document(language).set({"created": created_date})
+    print("Adding", language)
+    response = make_response(jsonify({"response": "language was added"}))
+    response.headers["Content-Type"] = "application/json"
+    return response
 
 @app.route('/send_message', methods=['POST'])
 def send_message():
@@ -152,7 +267,7 @@ def send_message():
     source_language = request.json["sourceLanguage"]
     target_language = request.json["targetLanguage"]
     current_topic = request.json["currentTopic"] # Create different prompts for each topic.
-    print("😊", current_topic)
+    print("😊", chat_history)
     is_suggestion = request.json["isSuggestion"]
     ai_message = get_chat_completion(OPENAI_API_KEY, chat_history, current_topic, source_language, target_language, is_suggestion)
     response = make_response(jsonify(ai_message))

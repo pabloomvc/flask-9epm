@@ -6,7 +6,7 @@ import time
 from datetime import datetime
 
 def get_chat_completion(api_key, chat_history, current_topic, source_language, target_language, is_suggestion):
-
+    """Main chat completion function, for the chat main feature"""
     # Load system prompt
     with open("prompts/initial_prompt.txt", "r") as initial_prompt_file:
         initial_prompt_content = initial_prompt_file.read()
@@ -31,29 +31,52 @@ def get_chat_completion(api_key, chat_history, current_topic, source_language, t
 
     system_prompt_object = {"role": "system", "content": system_prompt}
 
+    """
+    For languages such as chinese, japanese, russian:
+    In the instructions file I have an extra line that can be replaced with an instruction to get a response in the latin alphabet as well:
+    pinyin, romanji, etc.
+    When the language is one of those, I'll replace that line with the custom instructions. 
+    Else, I'll replace it with an empty string.
+    """
+
+    latin_alphabet_map = {
+        "Chinese": ("pinyin", "pinyin"), 
+        "Japanese": ("romanji", "romanji"),
+        "Russian": ("phonetic", "the phonetic alphabet"),
+        "Hindi": ("phonetic", "the phonetic alphabet"), 
+        "Korean": ("rrok", "the revised romanization of korean system")
+    }
+    if target_language in latin_alphabet_map:
+        latin_alphabet_instructions = f'- "{latin_alphabet_map[target_language][0]}": Your reply, but using {latin_alphabet_map[target_language][1]}.'
+    else: 
+        latin_alphabet_instructions = ""
+
     # Add the instructions to the last message in the chat.
     with open("prompts/message_instructions.txt", "r") as message_instructions_file:
         instructions = message_instructions_file.read()
         # instructions = instructions.replace("<user_message>", chat_history[-1]["content"])
         instructions = instructions.replace("<source_language>", source_language)
         instructions = instructions.replace("<target_language>", target_language)
-        instructions_message = {"role": "user", "content": instructions}
+        instructions = instructions.replace("<latin_alphabet_instructions>", latin_alphabet_instructions)
+        
 
     if len(chat_history)==0:
         print("🚀", chat_history)
-        full_chat_history = [system_prompt_object] + [instructions_message]
+        system_prompt_object["content"] += f"\n{instructions}"
+        full_chat_history = [system_prompt_object]
     else:
         # chat_history[-1]["content"] += f"\n\ninstructions"
+        instructions_message = {"role": "user", "content": instructions}
         full_chat_history = [system_prompt_object] + chat_history + [instructions_message]
         
     #full_chat_history[-1]["content"] = full_chat_history[-1]["content"] + "\n\n" + instructions
 
     
     clean_chat_history = [{"role": message["role"], "content": message["content"]} for message in full_chat_history]
-    print("\nFULL CHAT CLEAN")
-    for msg in clean_chat_history:
-        print(msg)
-    
+    # print("\nFULL CHAT CLEAN")
+    # for msg in clean_chat_history:
+    #     print(msg)
+    print("Clean Chat", clean_chat_history)
     # Getting completion --------------------------------------------------------------
     openai.api_key = api_key
     main_completion = openai.ChatCompletion.create(temperature=0.9, model="gpt-3.5-turbo", messages= clean_chat_history)
@@ -69,6 +92,14 @@ def get_chat_completion(api_key, chat_history, current_topic, source_language, t
         "suggestions": main_completion_response["suggestions"], 
         "translation": main_completion_response["translation"]}
     
+    for alphabet, _ in latin_alphabet_map.values():
+        if alphabet in main_completion_response:
+            print(alphabet, "FOUND")
+            resulting_message["phonetic"] = main_completion_response[alphabet]
+            break
+    print("\n\nRESULTING")
+    print(resulting_message)
+
     # Logs -----------------------------------------------------------------------------
     print("\nLOGS ------------")
     try:
@@ -85,6 +116,9 @@ def get_chat_completion(api_key, chat_history, current_topic, source_language, t
 
 
 def get_tutor_message(api_key, current_topic, target_language, tutor_command, user_question):
+    """
+    Function to get a message from AskVersa
+    """
     print("⭐⭐⭐⭐⭐⭐⭐", current_topic, target_language, tutor_command, user_question)
     
     openai.api_key = api_key
@@ -96,7 +130,7 @@ def get_tutor_message(api_key, current_topic, target_language, tutor_command, us
         system_msg = system_msg.replace("<target_language>", target_language)
         chat_history = [{"role": "system", "content": system_msg}, {"role": "user", "content": user_question}]
         main_completion = openai.ChatCompletion.create(temperature=0.1, model="gpt-4", messages= chat_history)
-        print(main_completion.choices[0].message["content"])
+        # print(main_completion.choices[0].message["content"])
         main_completion_response = json.loads(main_completion.choices[0].message["content"], strict=False)
         resulting_message = {
             "role": "assistant", 
@@ -150,7 +184,7 @@ Format your response as JSON containing the following keys:
         system_msg = system_msg.replace("<target_language>", target_language)
         chat_history = [{"role": "system", "content": system_msg}, {"role": "user", "content": user_template}]
         main_completion = openai.ChatCompletion.create(temperature=0.1, model="gpt-4", messages= chat_history)
-        print(main_completion.choices[0].message["content"])
+        # print(main_completion.choices[0].message["content"])
         main_completion_response = json.loads(main_completion.choices[0].message["content"], strict=False)   
         resulting_message = {
             "role": "assistant", 
@@ -170,7 +204,7 @@ Format your responses as JSON containing the following keys:
         chat_history = [{"role": "system", "content": system_msg}, {"role": "user", "content": user_template}]
         main_completion = openai.ChatCompletion.create(temperature=0.1, model="gpt-4", messages= chat_history)
         
-        print("🤣", main_completion.choices[0].message["content"])
+        # print("🤣", main_completion.choices[0].message["content"])
         main_completion_response = json.loads(main_completion.choices[0].message["content"], strict=False)   
         resulting_message = {
             "role": "assistant", 
@@ -183,9 +217,8 @@ Format your responses as JSON containing the following keys:
     return resulting_message
 
 
-
 def get_message_corrections(api_key, user_message, source_language, target_language, is_suggestion=False):
-    
+    """Detect the errors and get corrections for messages sent in the chat."""
     # GETTING MESSAGE CORRECTIONS!
     # Right now im doing it with gpt, but I MIGHT have to find (cheaper) alternatives.
     # Creating the message for the 2nd call to the gpt, to get the user's errors and corrections.
@@ -219,11 +252,11 @@ def get_message_corrections(api_key, user_message, source_language, target_langu
         print(corrections_response)
         print(e)
 
-
-
     return corrections_response
 
+
 def translate_word_by_word(api_key, target_language, message):
+    """Translate wbw of the messages sent by Versa."""
     openai.api_key = api_key
 
     with open("prompts/word_by_word/system_prompt.txt", "r") as system_prompt_file:
@@ -255,8 +288,37 @@ def translate_word_by_word(api_key, target_language, message):
     return main_completion_json
 
 
-# OPENAI_API_KEY = OPENAI_API_KEY="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"
-# translate_word_by_word(OPENAI_API_KEY, "Spanish", "Gracias! La pizza estaba deliciosa. ¿Cómo puedo pagarte?")
+def get_vocab_data(api_key, targetW, sentence, language):
+    """This function is called after the user decides to save a word. Before that word is sent to firebase, it passes throughout this function."""
+    
+    latin_alphabet_map = {
+        "Chinese": ("pinyin", "pinyin"), 
+        "Japanese": ("romanji", "romanji"),
+        "Russian": ("phonetic", "the phonetic alphabet"),
+        "Hindi": ("phonetic", "the phonetic alphabet"),
+        "Korean": ("rrok", "the revised romanization of korean system")
+    }
+    if language in latin_alphabet_map:
+        latin_alphabet_instructions = f'- phonetic: The word, but using {latin_alphabet_map[language][1]}.'
+    else: 
+        latin_alphabet_instructions = ""
+
+    openai.api_key = api_key
+    with open("prompts/vocab_prompts/get_vocab_data_prompt.txt", "r") as vocab_data_file:
+        vocab_data_message = vocab_data_file.read()
+        vocab_data_message = vocab_data_message.replace("<target_word>", targetW)
+        vocab_data_message = vocab_data_message.replace("<sentence>", sentence)
+        vocab_data_message = vocab_data_message.replace("<target_language>", language)
+        vocab_data_message = vocab_data_message.replace("<latin_alphabet_instructions>", latin_alphabet_instructions)
+
+    messages = [{"role": "system", "content":vocab_data_message}]
+    vocab_details = openai.ChatCompletion.create(temperature=0.1, model="gpt-3.5-turbo", messages=messages)
+    details_response = json.loads(vocab_details.choices[0].message["content"])
+
+    print("👊 Vocab details")
+    pp = pprint.PrettyPrinter(indent=4)
+    pp.pprint(details_response)
+    return details_response
 
 
 # ---------------------------------------------------------------------------------------------------------------

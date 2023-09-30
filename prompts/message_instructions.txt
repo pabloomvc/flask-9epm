@@ -1,5 +1,6 @@
 Format your response as JSON containing the following keys:
-- "reply": The content of your reply to the user's message. Your reply should help the user practice <target_language>.
+- "reply": The content of your reply to the user's message. Your reply should be short and simple, and help the user practice <target_language>.
+<latin_alphabet_instructions>
 - "translation": The contextual translation of your reply to <source_language>.
 - "suggestions": An array with 3 possible ways to respond to your reply. The suggestions should be common things a human would reply, short, simple, relevant to the context of the conversation, and able to be replied to by the assistant. Each suggestion should look like this: {"suggestion": <actual suggestion>, "translation": <the <target_language> translation of the suggestion, in the context of the conversation.>}.
 
