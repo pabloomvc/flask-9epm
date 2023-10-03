@@ -288,28 +288,43 @@ def send_tutor_message():
 @app.route('/handle_streak', methods=['POST'])
 def handle_streak():
     user_id = request.json["userId"]
-    is_streak = request.json["isStreak"]
     target_language = request.json["targetLanguage"]
-    convo_level = request.json["convoLevel"]
+    streak_data = request.json["streakData"]
+    # convo_level = request.json["convoLevel"]
 
-    if convo_level == "1": 
-        if is_streak: 
-            pass
-            # streak += 1
-        # points += 1 (but on the db ofc, using user_id and target_language)
-        # num of convos += 1
-    elif convo_level == "2": 
-        pass
-        # points += 1
-    elif convo_level == "3": 
-        pass 
-        # points += 1
-        # and crowns? idk 
-
+    # if convo_level == "1": 
+    #     if is_streak: 
+    #         pass
+    #         # streak += 1
+    #     # points += 1 (but on the db ofc, using user_id and target_language)
+    #     # num of convos += 1
+    # elif convo_level == "2": 
+    #     pass
+    #     # points += 1
+    # elif convo_level == "3": 
+    #     pass 
+    #     # points += 1
+    #     # and crowns? idk 
+    print("🔥 STREAK!", streak_data)
+    doc_ref = db.collection(u'users').document(user_id).collection("courses")
+    doc_ref.document(target_language).set({"streak_data": streak_data})
     response = make_response(jsonify({}))
     response.headers["Content-Type"] = "application/json"
     return response
 
+@app.route('/get_streak_data', methods=['GET'])
+def get_streak_data():
+    user_id = request.args.get('userId')
+    target_language = request.args.get("targetLanguage")
+    print("Getting Date Last Chat")
+    doc_ref = db.collection(u'users').document(user_id).collection("courses").document(target_language)
+    print("DOCREF",doc_ref.get().to_dict())
+    streak_data = doc_ref.get().to_dict().get("streak_data", None)
+
+    print("Data", streak_data)
+    response = make_response(jsonify(streak_data))
+    response.headers["Content-Type"] = "application/json"
+    return response
 
 
 @app.route('/get_corrections', methods=['GET'])
