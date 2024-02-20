@@ -16,7 +16,7 @@ logging.basicConfig(level=logging.DEBUG, filename='app.log', format='%(asctime)s
 
 load_dotenv()
 FIREBASE_API_CREDS = os.getenv('FIREBASE_API_CREDS')
-CLIENT_URL = "http://localhost:3000" # os.getenv('CLIENT_URL') # 
+CLIENT_URL = os.getenv('CLIENT_URL') # "http://localhost:3000" # 
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 NARAKEET_API_KEY = os.getenv("NARAKEET_API_KEY")
 NOTION_TOKEN = os.getenv("NOTION_TOKEN")
