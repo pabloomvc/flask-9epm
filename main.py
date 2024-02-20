@@ -11,12 +11,12 @@ from functions import *
 from datetime import datetime
 import requests
 from elevenlabs import generate, set_api_key, save
-
-
+import logging
+logging.basicConfig(level=logging.DEBUG, filename='app.log', format='%(asctime)s %(levelname)s:%(message)s')
 
 load_dotenv()
 FIREBASE_API_CREDS = os.getenv('FIREBASE_API_CREDS')
-CLIENT_URL = os.getenv('CLIENT_URL') # "http://localhost:3000"
+CLIENT_URL = "http://localhost:3000" # os.getenv('CLIENT_URL') # 
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 NARAKEET_API_KEY = os.getenv("NARAKEET_API_KEY")
 NOTION_TOKEN = os.getenv("NOTION_TOKEN")
@@ -34,6 +34,9 @@ db = firestore.client()
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # Set maximum file size (here 16MB)
 cors = CORS(app, origins=CLIENT_URL)
+# cors = CORS(app, resources={r"/*": {"origins": "*"}}) 
+# CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app)
 
 """
 @app.route('/test_endpoint', methods=['GET'])
@@ -231,14 +234,30 @@ def get_saved_words():
     response.headers["Content-Type"] = "application/json"
     return response
 
+@app.route('/get_streak_data', methods=['GET'])
+def get_streak_data():
+    user_id = request.args.get('userId')
+    target_language = request.args.get("targetLanguage")
+    doc_ref = db.collection(u'users').document(user_id)
+    streak_data = doc_ref.collection("courses").document(target_language).get().to_dict().get("streak_data", None)
+    response = make_response(jsonify(streak_data))
+    response.headers["Content-Type"] = "application/json"
+    return response
+
 @app.route('/get_courses_list', methods=['GET'])
 def get_courses_list():
+    print("GET_COURSES")
     user_id = request.args.get('userId')
-    doc_ref = db.collection(u'users').document(user_id).collection("courses")
+
+    doc_ref = db.collection(u'users').document(user_id)
+    courses_docs = doc_ref.collection("courses").list_documents()
+
     courses_list = []
-    for course in doc_ref.list_documents():
-        print("✌️", course.get().id)
-        id_, created = course.get().id, course.get().to_dict().get("created", "000000")
+    for course in courses_docs:
+        course = course.get()
+        print("course", course)
+        print("✌️", course.id)
+        id_, created = course.id, course.to_dict().get("created", "000000")
         courses_list.append((created, id_))
     courses_list.sort(reverse=True)
     print("👊 Sorted")
@@ -247,7 +266,10 @@ def get_courses_list():
     courses_list = [course[1] for course in courses_list]
     response = make_response(jsonify(courses_list))
     response.headers["Content-Type"] = "application/json"
+    response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
     return response
+
+
 
 @app.route('/add_language', methods=['POST'])
 def add_language():
@@ -309,20 +331,6 @@ def handle_streak():
     doc_ref = db.collection(u'users').document(user_id).collection("courses")
     doc_ref.document(target_language).set({"streak_data": streak_data})
     response = make_response(jsonify({}))
-    response.headers["Content-Type"] = "application/json"
-    return response
-
-@app.route('/get_streak_data', methods=['GET'])
-def get_streak_data():
-    user_id = request.args.get('userId')
-    target_language = request.args.get("targetLanguage")
-    print("Getting Date Last Chat")
-    doc_ref = db.collection(u'users').document(user_id).collection("courses").document(target_language)
-    print("DOCREF",doc_ref.get().to_dict())
-    streak_data = doc_ref.get().to_dict().get("streak_data", None)
-
-    print("Data", streak_data)
-    response = make_response(jsonify(streak_data))
     response.headers["Content-Type"] = "application/json"
     return response
 
@@ -448,4 +456,6 @@ def translate():
 
 if __name__ == "__main__":
     # host="0.0.0.0", port=5000
-    app.run()
+    print("running")
+    app.debug = True
+    app.run(port="8000")
