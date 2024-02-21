@@ -238,10 +238,11 @@ def get_saved_words():
 def get_streak_data():
     user_id = request.args.get('userId')
     target_language = request.args.get("targetLanguage")
-    if target_language:
+    try:
         doc_ref = db.collection(u'users').document(user_id)
         streak_data = doc_ref.collection("courses").document(target_language).get().to_dict().get("streak_data", None)
-    else: 
+    except Exception as e:
+        print("[Error fetching streak data]: ", e)
         streak_data = {}
     response = make_response(jsonify(streak_data))
     response.headers["Content-Type"] = "application/json"
