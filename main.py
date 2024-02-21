@@ -247,7 +247,7 @@ def get_streak_data():
     response = make_response(jsonify(streak_data))
     response.headers["Content-Type"] = "application/json"
     return response
-
+ 
 @app.route('/get_courses_list', methods=['GET'])
 def get_courses_list():
     print("GET_COURSES")
