@@ -266,7 +266,7 @@ def get_courses_list():
     courses_list = [course[1] for course in courses_list]
     response = make_response(jsonify(courses_list))
     response.headers["Content-Type"] = "application/json"
-    response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+    # response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
     return response
 
 
