@@ -238,8 +238,11 @@ def get_saved_words():
 def get_streak_data():
     user_id = request.args.get('userId')
     target_language = request.args.get("targetLanguage")
-    doc_ref = db.collection(u'users').document(user_id)
-    streak_data = doc_ref.collection("courses").document(target_language).get().to_dict().get("streak_data", None)
+    if target_language:
+        doc_ref = db.collection(u'users').document(user_id)
+        streak_data = doc_ref.collection("courses").document(target_language).get().to_dict().get("streak_data", None)
+    else: 
+        streak_data = {}
     response = make_response(jsonify(streak_data))
     response.headers["Content-Type"] = "application/json"
     return response
